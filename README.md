@@ -11,7 +11,7 @@
 - string 클래스를 이용한 사용자 입력 데이터 처리
 - DateTime 클래스를 이용한 현재시간 정보 구하기
 
-## ## 실행 화면 (과제 1 )
+## ## 실행 화면 (과제 1)
 - 코드의 실행 스크린샷과 구현 내용 설명
 
 ![실행화면](img/1.png)
@@ -25,7 +25,7 @@
 
 ## 실행 화면 (과제2)
 - 코드의 실행 스크린샷과 구현 내용 설명
-![실행화면](img/screenshot-2.png)
+![실행화면](img/2.png)
 - 구현한 내용 (위 그림 참조)
 - 패스워드 입력 내용 숨기기 : UseSystemPasswordChar 속성 이용
 - Placeholder 메시지를 표시할 때는 UseSystemPasswordChar 없애기
