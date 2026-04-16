@@ -2,6 +2,10 @@ namespace FileCompare
 {
     public partial class Form1 : Form
     {
+        // 파일 이름을 키로 해서 파일 정보를 저장하는 사전(Dictionary)
+        Dictionary<string, FileInfo> leftFiles = new Dictionary<string, FileInfo>();
+        Dictionary<string, FileInfo> rightFiles = new Dictionary<string, FileInfo>();
+
         public Form1()
         {
             InitializeComponent();
@@ -24,7 +28,7 @@ namespace FileCompare
                     PopulateListView(lvwLeftDir, dlg.SelectedPath);
                     CompareListViews();
                 }
-                
+
             }
         }
 
@@ -68,10 +72,14 @@ namespace FileCompare
                     lv.Items.Add(item);
                 }
 
-                // [2] 파일 목록 가져오기 및 추가
+                // [2] 파일 목록 가져오기 및 추가 부분 수정
                 var files = Directory.EnumerateFiles(folderPath)
                             .Select(p => new FileInfo(p))
                             .OrderBy(f => f.Name);
+
+                // 저장소 초기화 (함수 시작 부분에 넣거나 여기서 처리)
+                if (lv == lvwLeftDir) leftFiles.Clear();
+                else rightFiles.Clear();
 
                 foreach (var f in files)
                 {
@@ -79,6 +87,10 @@ namespace FileCompare
                     item.SubItems.Add(f.Length.ToString("N0") + " 바이트");
                     item.SubItems.Add(f.LastWriteTime.ToString("g"));
                     lv.Items.Add(item);
+
+                    // 저장소에 파일 정보 추가
+                    if (lv == lvwLeftDir) leftFiles[f.Name] = f;
+                    else rightFiles[f.Name] = f;
                 }
 
                 // [3] 리스트뷰 컬럼 너비 자동 조정
@@ -163,7 +175,90 @@ namespace FileCompare
                 }
             }
         }
+        private void CopyFileWithConfirmation(FileInfo src, string destPath)
+        {
+            if (File.Exists(destPath))
+            {
+                FileInfo dest = new FileInfo(destPath);
 
+                // 원본이 대상보다 '오래된' 경우에만 경고 창 표시
+                if (src.LastWriteTime < dest.LastWriteTime)
+                {
+                    string message = "대상에 동일한 이름의 파일이 이미 있습니다.\n" +
+                                     "대상 파일이 더 신규 파일입니다. 덮어쓰시겠습니까?\n\n" +
+                                     "원본: " + src.FullName + " (" + src.LastWriteTime + ")\n" +
+                                     "대상: " + dest.FullName + " (" + dest.LastWriteTime + ")";
+
+                    var result = MessageBox.Show(message, "덮어쓰기 확인",
+                                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                    if (result == DialogResult.No) return; // '아니요' 누르면 복사 안 함
+                }
+            }
+
+            // 조건에 안 걸리거나 '예'를 누르면 조용히 복사 (완료 알림 없음)
+            File.Copy(src.FullName, destPath, true);
+        }
+
+        private void btnCopyFromLeft_Click(object sender, EventArgs e)
+        {
+            // 1. 왼쪽 리스트에서 선택된 항목들을 가져옵니다.
+            var selectedItems = lvwLeftDir.SelectedItems;
+
+            // 2. 선택된 게 없으면 아무것도 안 하고 끝냅니다.
+            if (selectedItems.Count == 0) return;
+
+            // 3. 하나씩 꺼내서 복사 작업을 진행합니다.
+            foreach (ListViewItem item in selectedItems)
+            {
+                string fileName = item.Text;
+
+                // 주머니(Dictionary)에서 원본 파일 정보를 찾습니다.
+                if (leftFiles.TryGetValue(fileName, out var srcFile))
+                {
+                    // 오른쪽 폴더 경로와 파일 이름을 합쳐서 목적지 주소를 만듭니다.
+                    string destPath = Path.Combine(txtRightDir.Text, srcFile.Name);
+
+                    // 3단계에서 만든 '똑똑한 복사 함수'를 실행합니다.
+                    CopyFileWithConfirmation(srcFile, destPath);
+                }
+            }
+
+            // 4. 복사가 다 끝났으면 화면을 새로고침해서 색깔을 맞춥니다.
+            PopulateListView(lvwLeftDir, txtLeftDir.Text);
+            PopulateListView(lvwrightDir, txtRightDir.Text);
+            CompareListViews();
+        }
+
+        private void btnCopyFromRight_Click(object sender, EventArgs e)
+        {
+            // 1. 오른쪽 리스트에서 선택된 항목들을 가져옵니다.
+            var selectedItems = lvwrightDir.SelectedItems;
+
+            // 2. 선택된 게 없으면 아무것도 안 하고 끝냅니다.
+            if (selectedItems.Count == 0) return;
+
+            // 3. 하나씩 꺼내서 복사 작업을 진행합니다.
+            foreach (ListViewItem item in selectedItems)
+            {
+                string fileName = item.Text;
+
+                // 오른쪽 주머니(rightFiles) 에서 원본 파일 정보를 찾습니다.
+                if (rightFiles.TryGetValue(fileName, out var srcFile))
+                {
+                    // 왼쪽 폴더 경로(txtLeftDir) 와 파일 이름을 합쳐서 목적지 주소를 만듭니다.
+                    string destPath = Path.Combine(txtLeftDir.Text, srcFile.Name);
+
+                    // 날짜 비교 확인 창이 포함된 똑똑한 복사 함수 실행
+                    CopyFileWithConfirmation(srcFile, destPath);
+                }
+            }
+
+            // 4. 복사가 다 끝났으면 양쪽 리스트를 새로고침해서 색깔을 다시 맞춥니다.
+            PopulateListView(lvwLeftDir, txtLeftDir.Text);
+            PopulateListView(lvwrightDir, txtRightDir.Text);
+            CompareListViews();
+        }
     }
 
 }
