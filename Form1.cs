@@ -288,18 +288,7 @@ namespace FileCompare
             PopulateListView(lvwrightDir, txtRightDir.Text);
             CompareListViews();
         }
-        private long GetDirectorySize(DirectoryInfo d)
-        {
-            try
-            {
-                // 하위 모든 파일의 합계를 구함
-                return d.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
-            }
-            catch
-            {
-                return 0; // 접근 권한 없는 폴더 등 예외 처리
-            }
-        }
+        
         private void CopyDirectory(string sourceDir, string destDir)
         {
             Directory.CreateDirectory(destDir);
